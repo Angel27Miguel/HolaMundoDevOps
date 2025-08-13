@@ -3,11 +3,13 @@ name: CI/CD Pipeline
 on:
   push:
     branches:
-      - main  # o la rama que uses para producción
+      - main
 
 jobs:
   build-and-push:
     runs-on: ubuntu-latest
+    outputs:
+      image-tag: ${{ steps.build-image.outputs.image-tag }}
 
     steps:
       - name: Checkout repository
@@ -20,16 +22,22 @@ jobs:
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
       - name: Build and push Docker image
+        id: build-image
         uses: docker/build-push-action@v4
         with:
           context: .
           push: true
           tags: ${{ secrets.DOCKERHUB_USERNAME }}/hola-mundo-devops:latest
+          # También puedes agregar tags dinámicos aquí si quieres
 
+  deploy-to-render:
+    needs: build-and-push
+    runs-on: ubuntu-latest
+
+    steps:
       - name: Deploy to Render
         run: |
           curl -X POST \
           -H "Authorization: Bearer ${{ secrets.RENDER_API_KEY }}" \
           -H "Content-Type: application/json" \
           https://api.render.com/deploy/srv-${{ secrets.RENDER_SERVICE_ID }}
-            - name: Deploy to Render
